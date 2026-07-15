@@ -81,11 +81,11 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, phone, password } = req.body;
+    const { identifier, password } = req.body;
 
     const user = await prisma.user.findFirst({
       where: {
-        OR: [{ email }, { phone }],
+        OR: [{ email: identifier }, { phone: identifier }],
       },
     });
 
