@@ -64,6 +64,15 @@ export const register = async (req: Request, res: Response) => {
         email: email?.trim().toLowerCase(),
         phone: phone?.trim(),
         password: hashedPassword,
+
+        wallet: {
+          create: {
+            balance: 100,
+            status: "ACTIVE",
+            dailyLimit: 100000,
+            monthlyLimit: 10000000,
+          }
+        }
       },
     });
 

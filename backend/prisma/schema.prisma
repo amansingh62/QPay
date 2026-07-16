@@ -7,6 +7,12 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Status {
+  ACTIVE
+  INACTIVE
+  FROZEN
+}
+
 model User {
   id String @id @default(uuid())
   name String
@@ -20,6 +26,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   refreshTokens RefreshToken[]
+  wallet Wallet[]
 }
 
 model RefreshToken {
@@ -31,4 +38,24 @@ model RefreshToken {
 
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model Wallet {
+  id String @id @default(uuid()) 
+  balance Decimal @default(0)
+
+  status Status @default(ACTIVE)
+  isFrozen Boolean @default(false)
+
+  dailyLimit Decimal @default(100000)
+  monthlyLimit Decimal @default(10000000)
+
+  dailySpent Decimal @default(0)
+  monthlySpent Decimal @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @unique
+  user User @relation(fields: [userId], references: [id])
 }
