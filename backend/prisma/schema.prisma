@@ -13,6 +13,26 @@ enum Status {
   FROZEN
 }
 
+enum TransactionType {
+  TRANSFER
+  WITHDRAW
+  DEPOSIT
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum BankName {
+  SBI
+  ICICI
+  AXIS
+  HDFC
+  PNB
+}
+
 model User {
   id String @id @default(uuid())
   name String
@@ -26,7 +46,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   refreshTokens RefreshToken[]
-  wallet Wallet[]
+  wallet Wallet?
+  bankAccounts BankAccount[]
 }
 
 model RefreshToken {
@@ -44,7 +65,6 @@ model Wallet {
   id String @id @default(uuid()) 
   balance Decimal @default(0)
 
-  status Status @default(ACTIVE)
   isFrozen Boolean @default(false)
 
   dailyLimit Decimal @default(100000)
@@ -58,4 +78,47 @@ model Wallet {
 
   userId String @unique
   user User @relation(fields: [userId], references: [id])
+
+  sentTransactions Transaction[] @relation("SentTransactions")
+  receivedTransactions Transaction[] @relation("ReceivedTransactions")
+}
+
+model BankAccount {
+  id String @id @default(uuid())
+  balance Decimal @default(50000)
+  
+  bankName String
+  accountHolder String
+  ifscCode String
+  accountNumber String @unique
+
+  userId String
+  user User @relation(fields: [userId], references: [id])
+
+  sentTransactions     Transaction[] @relation("SentBankTransactions")
+  receivedTransactions Transaction[] @relation("ReceivedBankTransactions")
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  referenceId String   @unique @default(cuid())
+
+  amount      Decimal
+
+  type        TransactionType
+  status      TransactionStatus @default(PENDING)
+
+  senderWalletId       String?
+  receiverWalletId     String?
+
+  senderBankAccountId  String?
+  receiverBankAccountId String?
+
+  senderWallet Wallet? @relation("SentTransactions", fields: [senderWalletId], references: [id])
+  receiverWallet Wallet? @relation("ReceivedTransactions", fields: [receiverWalletId], references: [id])
+
+  senderBankAccount BankAccount? @relation("SentBankTransactions", fields: [senderBankAccountId], references: [id])
+  receiverBankAccount BankAccount? @relation("ReceivedBankTransactions", fields: [receiverBankAccountId], references: [id])
+
+  createdAt DateTime @default(now())
 }
