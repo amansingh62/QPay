@@ -5,6 +5,7 @@ import {
   TransactionStatus,
   TransactionType,
 } from "../../../generated/prisma/enums.js";
+import { Prisma } from "../../../generated/prisma/browser.js";
 
 export const getWallet = async (req: Request, res: Response) => {
   try {
@@ -20,7 +21,6 @@ export const getWallet = async (req: Request, res: Response) => {
       select: {
         id: true,
         balance: true,
-        status: true,
         isFrozen: true,
         dailySpent: true,
         monthlySpent: true,
@@ -80,9 +80,9 @@ export const linkBankAccount = async (req: Request, res: Response) => {
   });
 
   return res.status(201).json({
-  message: "Bank account linked successfully",
-  bank,
-});
+    message: "Bank account linked successfully",
+    bank,
+  });
 };
 
 export const getBankAccounts = async (req: Request, res: Response) => {
@@ -236,6 +236,149 @@ export const addMoney = async (req: Request, res: Response) => {
     }
 
     console.error("Add Money Error:", error);
+
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const withdraw = async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId;
+    const { amount, accountNumber } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    if (!accountNumber) {
+      return res.status(400).json({
+        message: "Account number is required",
+      });
+    }
+
+    const wallet = await prisma.wallet.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        id: true,
+        dailyLimit: true,
+        dailySpent: true,
+        monthlyLimit: true,
+        monthlySpent: true,
+      },
+    });
+
+    if (!wallet) {
+      return res.status(404).json({
+        message: "Wallet not found",
+      });
+    }
+
+    if (wallet.dailySpent.plus(amount).greaterThan(wallet.dailyLimit)) {
+      return res.status(403).json({
+        message: "Daily transaction limit exceeded",
+      });
+    }
+
+    if (wallet.monthlySpent.plus(amount).greaterThan(wallet.monthlyLimit)) {
+      return res.status(403).json({
+        message: "Monthly transaction limit exceeded",
+      });
+    }
+
+    const bankAccount = await prisma.bankAccount.findFirst({
+      where: {
+        userId,
+        accountNumber,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!bankAccount) {
+      return res.status(404).json({
+        message: "Bank account not found",
+      });
+    }
+
+    const transaction = await prisma.$transaction(async (tx) => {
+      const walletUpdate = await tx.wallet.updateMany({
+        where: {
+          userId,
+          balance: {
+            gte: new Prisma.Decimal(amount),
+          },
+        },
+        data: {
+          balance: {
+            decrement: amount,
+          },
+          dailySpent: {
+            increment: amount,
+          },
+          monthlySpent: {
+            increment: amount,
+          },
+        },
+      });
+
+      if (walletUpdate.count === 0) {
+        throw new Error("INSUFFICIENT_BALANCE");
+      }
+
+      const bankUpdate = await tx.bankAccount.updateMany({
+        where: {
+          userId,
+          accountNumber,
+        },
+        data: {
+          balance: {
+            increment: amount,
+          },
+        },
+      });
+
+      if (bankUpdate.count === 0) {
+        throw new Error("BANK_UPDATE_FAILED");
+      }
+
+      return await tx.transaction.create({
+        data: {
+          amount,
+          type: TransactionType.WITHDRAW,
+          status: TransactionStatus.SUCCESS,
+          senderWalletId: wallet.id,
+          receiverBankAccountId: bankAccount.id,
+        },
+      });
+    });
+
+    return res.status(200).json({
+      message: "Money withdrawn successfully",
+      transaction,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "INSUFFICIENT_BALANCE") {
+      return res.status(400).json({
+        message: "Insufficient wallet balance",
+      });
+    }
+
+    if (error instanceof Error && error.message === "BANK_UPDATE_FAILED") {
+      return res.status(500).json({
+        message: "Failed to update bank account",
+      });
+    }
+
+    console.error("Withdraw Error:", error);
 
     return res.status(500).json({
       message: "Internal Server Error",
