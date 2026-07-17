@@ -5,7 +5,7 @@ import { isFrozen } from "../../middlewares/freezeMiddleware.js";
 
 const router = Router();
 
-router.get("/getWallet", isAuthenticated, getWallet);
+router.get("/wallet", isAuthenticated, getWallet);
 router.get("/bankAccounts", isAuthenticated, getBankAccounts);
 
 router.post("/bankAccount", isAuthenticated, linkBankAccount);

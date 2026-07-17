@@ -68,7 +68,7 @@ export const register = async (req: Request, res: Response) => {
         wallet: {
           create: {
             balance: 100,
-            status: "ACTIVE",
+            isFrozen: false,
             dailyLimit: 100000,
             monthlyLimit: 10000000,
           }
