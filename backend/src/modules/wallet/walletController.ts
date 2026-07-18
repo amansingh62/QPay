@@ -196,7 +196,7 @@ export const addMoney = async (req: Request, res: Response) => {
         throw new Error("INSUFFICIENT_BALANCE");
       }
 
-      const wallet = await tx.wallet.update({
+      await tx.wallet.update({
         where: {
           userId,
         },
@@ -211,7 +211,7 @@ export const addMoney = async (req: Request, res: Response) => {
         },
       });
 
-      await tx.transaction.create({
+    const transaction = await tx.transaction.create({
         data: {
           amount,
           type: TransactionType.DEPOSIT,
@@ -221,7 +221,7 @@ export const addMoney = async (req: Request, res: Response) => {
         },
       });
 
-      return wallet;
+      return transaction;
     });
 
     return res.status(200).json({
