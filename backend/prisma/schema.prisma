@@ -48,6 +48,7 @@ model User {
   refreshTokens RefreshToken[]
   wallet Wallet?
   bankAccounts BankAccount[]
+  transactionSecurity TransactionSecurity[]
 }
 
 model RefreshToken {
@@ -121,4 +122,23 @@ model Transaction {
   receiverBankAccount BankAccount? @relation("ReceivedBankTransactions", fields: [receiverBankAccountId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+model TransactionSecurity {
+  id String @id @default(uuid())
+
+  transactionPin String?
+  isPinSet Boolean @default(false)
+
+  failedAttempts Int @default(0)
+  isLocked Boolean @default(false)
+  lockedUntil DateTime?
+
+  lastPinChangedAt DateTime?
+
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
