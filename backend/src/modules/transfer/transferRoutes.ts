@@ -6,6 +6,6 @@ const router = Router();
 
 router.get("/searchUser", isAuthenticated, searchUsers);
 
-router.post("/transfer", isAuthenticated, transfer);
+router.post("/", isAuthenticated, transfer);
 
 export default router;

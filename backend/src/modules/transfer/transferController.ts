@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { prisma } from "../../../lib/prisma.js";
 import { TransactionStatus, TransactionType } from "../../../generated/prisma/enums.js";
+import { verifyTransactionPin } from "../security/securityService.js";
 
 export const searchUsers = async (req: Request, res: Response) => {
   try {
@@ -42,11 +43,13 @@ export const searchUsers = async (req: Request, res: Response) => {
 
 export const transfer = async (req: Request, res: Response) => {
   try {
-    const userId = req.userId;
+  const userId = req.userId;
   const { receiverId } = req.params as { receiverId: string };
-  const {  amount } = req.body;
+  const {  amount, pin } = req.body;
 
   if(!userId) return res.status(401).json({ message: "Unauthorized" });
+
+  await verifyTransactionPin(req.userId!, pin);
 
   if(!amount || amount < 0) return res.status(400).json({ message: "Invalid amount" });
 
@@ -138,7 +141,7 @@ export const transfer = async (req: Request, res: Response) => {
 
     await tx.wallet.update({
       where: {
-          userId
+          userId: receiverId
       },
       data: {
         balance: {
@@ -161,8 +164,21 @@ export const transfer = async (req: Request, res: Response) => {
   });
 
   return res.status(200).json({ message: "Money transferred successfully",  transfer});
-  } catch (error) {
+  }  catch (error) {
+  console.error(error);
 
-  }
-
+  return res.status(
+    error instanceof Error &&
+    (error.message === "Invalid Transaction PIN" ||
+      error.message === "Transaction PIN not set" ||
+      error.message === "Insufficient balance")
+      ? 400
+      : 500
+  ).json({
+    message:
+      error instanceof Error
+        ? error.message
+        : "Internal Server Error",
+  });
+}
 };
