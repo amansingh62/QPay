@@ -9,6 +9,8 @@ import walletRoutes from "./modules/wallet/walletRoutes.js";
 import transferRoutes from "./modules/transfer/transferRoutes.js";
 import securityRoutes from "./modules/security/securityRoutes.js";
 
+import rechargeRoutes from "./modules/recharge/rechargeRoutes.js";
+
 import { env } from "./config/env.js";
 
 const app = express();
@@ -29,5 +31,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/transfer", transferRoutes);
 app.use("/api/security", securityRoutes);
+
+app.use("/api/recharge", rechargeRoutes);
 
 export default app;

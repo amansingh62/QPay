@@ -17,6 +17,7 @@ enum TransactionType {
   TRANSFER
   WITHDRAW
   DEPOSIT
+  RECHARGE
 }
 
 enum TransactionStatus {
@@ -33,11 +34,24 @@ enum BankName {
   PNB
 }
 
+enum Operator {
+  Airtel
+  Jio
+  Vi
+  BSNL
+}
+
+enum RechargeStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
 model User {
-  id String @id @default(uuid())
-  name String
-  email String? @unique
-  phone String? @unique
+  id       String  @id @default(uuid())
+  name     String
+  email    String? @unique
+  phone    String? @unique
   password String
 
   profilePicture String?
@@ -45,81 +59,85 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  refreshTokens RefreshToken[]
-  wallet Wallet?
-  bankAccounts BankAccount[]
+  refreshTokens       RefreshToken[]
+  wallet              Wallet?
+  bankAccounts        BankAccount[]
   transactionSecurity TransactionSecurity[]
 }
 
 model RefreshToken {
-  id String @id @default(uuid())
+  id    String @id @default(uuid())
   token String @unique
 
   userId String
-  user User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
 
 model Wallet {
-  id String @id @default(uuid()) 
+  id      String  @id @default(uuid())
   balance Decimal @default(0)
 
   isFrozen Boolean @default(false)
 
-  dailyLimit Decimal @default(100000)
+  dailyLimit   Decimal @default(100000)
   monthlyLimit Decimal @default(10000000)
 
-  dailySpent Decimal @default(0)
+  dailySpent   Decimal @default(0)
   monthlySpent Decimal @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   userId String @unique
-  user User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 
-  sentTransactions Transaction[] @relation("SentTransactions")
+  sentTransactions     Transaction[] @relation("SentTransactions")
   receivedTransactions Transaction[] @relation("ReceivedTransactions")
+
+  recharges Recharge[]
 }
 
 model BankAccount {
-  id String @id @default(uuid())
+  id      String  @id @default(uuid())
   balance Decimal @default(50000)
-  
-  bankName String
+
+  bankName      String
   accountHolder String
-  ifscCode String
+  ifscCode      String
   accountNumber String @unique
 
   userId String
-  user User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 
   sentTransactions     Transaction[] @relation("SentBankTransactions")
   receivedTransactions Transaction[] @relation("ReceivedBankTransactions")
 }
 
 model Transaction {
-  id          String   @id @default(uuid())
-  referenceId String   @unique @default(cuid())
+  id          String @id @default(uuid())
+  referenceId String @unique @default(cuid())
 
-  amount      Decimal
+  amount Decimal
 
-  type        TransactionType
-  status      TransactionStatus @default(PENDING)
+  type   TransactionType
+  status TransactionStatus @default(PENDING)
 
-  senderWalletId       String?
-  receiverWalletId     String?
+  senderWalletId   String?
+  receiverWalletId String?
 
-  senderBankAccountId  String?
+  senderBankAccountId   String?
   receiverBankAccountId String?
 
-  senderWallet Wallet? @relation("SentTransactions", fields: [senderWalletId], references: [id])
+  senderWallet   Wallet? @relation("SentTransactions", fields: [senderWalletId], references: [id])
   receiverWallet Wallet? @relation("ReceivedTransactions", fields: [receiverWalletId], references: [id])
 
-  senderBankAccount BankAccount? @relation("SentBankTransactions", fields: [senderBankAccountId], references: [id])
+  senderBankAccount   BankAccount? @relation("SentBankTransactions", fields: [senderBankAccountId], references: [id])
   receiverBankAccount BankAccount? @relation("ReceivedBankTransactions", fields: [receiverBankAccountId], references: [id])
+
+  recharge Recharge?
 
   createdAt DateTime @default(now())
 }
@@ -128,17 +146,34 @@ model TransactionSecurity {
   id String @id @default(uuid())
 
   transactionPin String?
-  isPinSet Boolean @default(false)
+  isPinSet       Boolean @default(false)
 
-  failedAttempts Int @default(0)
-  isLocked Boolean @default(false)
-  lockedUntil DateTime?
+  failedAttempts Int       @default(0)
+  isLocked       Boolean   @default(false)
+  lockedUntil    DateTime?
 
   lastPinChangedAt DateTime?
 
   userId String @unique
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Recharge {
+  id String @id @default(uuid())
+  operator Operator
+  amount Decimal
+  phone Decimal
+  status RechargeStatus
+
+  transactionId String @unique
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+
+  walletId String 
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
