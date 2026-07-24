@@ -97,6 +97,8 @@ model Wallet {
   sentTransactions     Transaction[] @relation("SentTransactions")
   receivedTransactions Transaction[] @relation("ReceivedTransactions")
 
+  transactions Transaction[] @relation("WalletTransactions")
+
   recharges Recharge[]
 }
 
@@ -128,6 +130,9 @@ model Transaction {
   senderWalletId   String?
   receiverWalletId String?
 
+  walletId String?
+  wallet Wallet? @relation("WalletTransactions", fields: [walletId], references: [id])
+
   senderBankAccountId   String?
   receiverBankAccountId String?
 
@@ -146,7 +151,6 @@ model TransactionSecurity {
   id String @id @default(uuid())
 
   transactionPin String?
-  isPinSet       Boolean @default(false)
 
   failedAttempts Int       @default(0)
   isLocked       Boolean   @default(false)
@@ -165,7 +169,7 @@ model Recharge {
   id String @id @default(uuid())
   operator Operator
   amount Decimal
-  phone Decimal
+  phone String
   status RechargeStatus
 
   transactionId String @unique

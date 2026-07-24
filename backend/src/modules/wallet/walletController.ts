@@ -218,6 +218,7 @@ export const addMoney = async (req: Request, res: Response) => {
           status: TransactionStatus.SUCCESS,
           receiverWalletId: wallet.id,
           senderBankAccountId: bankAccount.id,
+          walletId: wallet.id,
         },
       });
 
@@ -357,6 +358,7 @@ export const withdraw = async (req: Request, res: Response) => {
           status: TransactionStatus.SUCCESS,
           senderWalletId: wallet.id,
           receiverBankAccountId: bankAccount.id,
+          walletId: wallet.id,
         },
       });
     });

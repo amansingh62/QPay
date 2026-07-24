@@ -11,6 +11,8 @@ import securityRoutes from "./modules/security/securityRoutes.js";
 
 import rechargeRoutes from "./modules/recharge/rechargeRoutes.js";
 
+import transactionRoutes from "./modules/transaction/transactionRoutes.js";
+
 import { env } from "./config/env.js";
 
 const app = express();
@@ -33,5 +35,7 @@ app.use("/api/transfer", transferRoutes);
 app.use("/api/security", securityRoutes);
 
 app.use("/api/recharge", rechargeRoutes);
+
+app.use("/api/transactions", transactionRoutes);
 
 export default app;
